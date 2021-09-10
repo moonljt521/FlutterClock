@@ -10,10 +10,7 @@ class Clock extends StatefulWidget {
 
 class ClockState extends State<Clock> {
 
-  final _divider = Container(
-      alignment: Alignment.center,
-      child: Text(":" ,style: TextStyle(fontSize: 18 , color: Colors.black , fontWeight: FontWeight.w700),),
-      width: 25);
+  final _divider = Container(width: 25);
 
   final _normalSize = 35.0;
 
