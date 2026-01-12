@@ -3,21 +3,199 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-// 数字时钟 Widget
-class DigitalClock extends StatelessWidget {
+// 翻页记分牌数字时钟 Widget
+class DigitalClock extends StatefulWidget {
   final DateTime time;
+  final DateTime previousTime;
 
-  const DigitalClock({Key? key, required this.time}) : super(key: key);
+  const DigitalClock({Key? key, required this.time, required this.previousTime}) : super(key: key);
+
+  @override
+  State<DigitalClock> createState() => _DigitalClockState();
+}
+
+class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+  }
+
+  @override
+  void didUpdateWidget(DigitalClock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.time != widget.time) {
+      _animationController.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}",
-      style: TextStyle(
-        fontSize: 48,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-        letterSpacing: 4,
+    String hour = widget.time.hour.toString().padLeft(2, '0');
+    String minute = widget.time.minute.toString().padLeft(2, '0');
+    String second = widget.time.second.toString().padLeft(2, '0');
+    
+    String prevHour = widget.previousTime.hour.toString().padLeft(2, '0');
+    String prevMinute = widget.previousTime.minute.toString().padLeft(2, '0');
+    String prevSecond = widget.previousTime.second.toString().padLeft(2, '0');
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _FlipDigit(digit: hour[0], prevDigit: prevHour[0], animation: _animationController),
+        _FlipDigit(digit: hour[1], prevDigit: prevHour[1], animation: _animationController),
+        _Separator(),
+        _FlipDigit(digit: minute[0], prevDigit: prevMinute[0], animation: _animationController),
+        _FlipDigit(digit: minute[1], prevDigit: prevMinute[1], animation: _animationController),
+        _Separator(),
+        _FlipDigit(digit: second[0], prevDigit: prevSecond[0], animation: _animationController),
+        _FlipDigit(digit: second[1], prevDigit: prevSecond[1], animation: _animationController),
+      ],
+    );
+  }
+}
+
+// 分隔符
+class _Separator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(height: 12),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 翻页数字
+class _FlipDigit extends StatelessWidget {
+  final String digit;
+  final String prevDigit;
+  final AnimationController animation;
+
+  const _FlipDigit({
+    required this.digit,
+    required this.prevDigit,
+    required this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 只有数字变化时才显示动画
+    final bool hasChanged = digit != prevDigit;
+    
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 2),
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final animValue = hasChanged ? Curves.easeInOut.transform(animation.value) : 0.0;
+          final offset = -80.0 * animValue;
+          
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 60,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  // 数字滚动
+                  Positioned(
+                    top: offset,
+                    left: 0,
+                    right: 0,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _DigitCard(digit: hasChanged ? prevDigit : digit),
+                        _DigitCard(digit: digit),
+                      ],
+                    ),
+                  ),
+                  // 中间分割线
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 39,
+                    child: Container(
+                      height: 2,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// 数字卡片
+class _DigitCard extends StatelessWidget {
+  final String digit;
+
+  const _DigitCard({required this.digit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 60,
+      height: 80,
+      alignment: Alignment.center,
+      child: Text(
+        digit,
+        style: TextStyle(
+          fontSize: 56,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          height: 1,
+        ),
       ),
     );
   }
@@ -84,13 +262,13 @@ class ClockState extends State<Clock> with TickerProviderStateMixin {
       body: SingleChildScrollView(
         child: Container(
           alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(vertical: 20),
+          padding: EdgeInsets.symmetric(vertical: 10),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 数字时钟显示
-              DigitalClock(time: today),
-              SizedBox(height: 40),
+              // 翻页记分牌数字时钟
+              DigitalClock(time: today, previousTime: previousTime),
+              SizedBox(height: 20),
               // 动画时钟
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
